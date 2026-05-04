@@ -1,1 +1,5 @@
-run = "gunicorn -c gunicorn.conf.py app:app"
+# Replit configuration
+entrypoint = "app.py"
+
+[deployment]
+run = ["python3", "app.py"]
