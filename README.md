@@ -1,3 +1,12 @@
+---
+title: WebSentinal
+emoji: 🔒
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # WebSentinal - Professional Web Application Vulnerability Scanner
 
 A comprehensive web-based security tool that automates the detection of security flaws in web applications using OWASP ZAP integration.

@@ -1,5 +1,0 @@
-# Replit configuration
-entrypoint = "app.py"
-
-[deployment]
-run = ["python3", "app.py"]
