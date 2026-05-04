@@ -144,7 +144,6 @@ def login_required(view_func):
             wants_json = (
                 request.accept_mimetypes.best == 'application/json'
                 or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-                or request.path.startswith('/scan')
             )
             if wants_json:
                 return jsonify({'error': 'Authentication required'}), 401
