@@ -677,5 +677,5 @@ def scan_history():
     return render_template('history.html', scans=scans, user=current_user())
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 7860))
     app.run(debug=False, host='0.0.0.0', port=port)
