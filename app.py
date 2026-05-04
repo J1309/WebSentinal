@@ -39,7 +39,13 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24).hex())
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///vulnscan.db')
+
+# Use /data for persistent storage on Hugging Face Spaces
+data_dir = os.environ.get('HF_HOME', '/data')
+if not os.path.exists(data_dir):
+    data_dir = '.'
+db_path = os.path.join(data_dir, 'vulnscan.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', f'sqlite:///{db_path}')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
