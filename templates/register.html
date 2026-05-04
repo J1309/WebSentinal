@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - WebSentinal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #1a1a2e; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #ffffff; min-height: 100vh; }
+        .card-custom { background-color: #0f3460; border-radius: 15px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .brand { font-weight: 800; color: #6366f1; }
+        .form-control { background-color: #1a1a2e; border: 1px solid #444; color: #ffffff; padding: 14px; }
+        .form-control::placeholder { color: #888888; }
+        .form-control:focus { background-color: #1a1a2e; border-color: #6366f1; color: #ffffff; }
+        .btn-custom { background-color: #6366f1; border: none; border-radius: 10px; padding: 14px; color: #ffffff; font-weight: 600; }
+        .btn-custom:hover { background-color: #4f46e5; color: #ffffff; }
+        .form-label { color: #b0b0b0; }
+        a { color: #17a2b8; }
+    </style>
+</head>
+<body class="d-flex align-items-center">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card-custom p-4">
+                    <div class="text-center mb-4">
+                        <div class="brand fs-3"><i class="fas fa-shield-alt me-2"></i>WebSentinal</div>
+                        <div class="text-muted">Create your account</div>
+                    </div>
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}
+                    {% endwith %}
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" placeholder="Enter your email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" name="password" class="form-control" placeholder="Create a password" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">Confirm Password</label>
+                            <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your password" required>
+                        </div>
+                        <button type="submit" class="btn btn-custom w-100"><i class="fas fa-user-plus me-2"></i>Create Account</button>
+                    </form>
+                    <div class="text-center mt-4">
+                        <span class="text-muted">Already have an account? <a href="/login">Login</a></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

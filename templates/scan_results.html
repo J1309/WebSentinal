@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Results - WebSentinal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ffffff;
+        }
+        
+        .navbar {
+            background-color: #16213e !important;
+            border-bottom: 1px solid #333;
+        }
+        
+        .main-content { padding: 20px; }
+        
+        .card {
+            border-radius: 12px;
+            background-color: #0f3460;
+            border: 1px solid #333;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: #16213e;
+            border-bottom: 1px solid #333;
+            color: #ffffff;
+        }
+        
+        .risk-high { border-left: 5px solid #dc3545; background-color: rgba(220, 53, 69, 0.1); }
+        .risk-medium { border-left: 5px solid #ffc107; background-color: rgba(255, 193, 7, 0.1); }
+        .risk-low { border-left: 5px solid #28a745; background-color: rgba(40, 167, 69, 0.1); }
+        .risk-informational { border-left: 5px solid #6c757d; background-color: rgba(108, 117, 125, 0.1); }
+        
+        .vulnerability-card {
+            margin-bottom: 15px;
+        }
+        
+        .risk-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        
+        .badge-high { background-color: #dc3545; color: white; }
+        .badge-medium { background-color: #ffc107; color: black; }
+        .badge-low { background-color: #28a745; color: white; }
+        .badge-informational { background-color: #6c757d; color: white; }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-box {
+            background-color: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        
+        .stat-value { font-size: 2rem; font-weight: 800; }
+        .stat-high { color: #dc3545; }
+        .stat-medium { color: #ffc107; }
+        .stat-low { color: #28a745; }
+        .stat-info { color: #6c757d; }
+        
+        .progress { height: 12px; border-radius: 6px; background-color: #1a1a2e; }
+        
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsible-content.show { max-height: 1000px; }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #28a745;
+            display: inline-block;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        .alert-scan {
+            background-color: #0f3460;
+            border: 1px solid #6366f1;
+            color: #ffffff;
+        }
+        
+        a.text-url { color: #17a2b8; text-decoration: none; }
+        a.text-url:hover { text-decoration: underline; }
+        
+        h4, h5, h6 { color: #ffffff; }
+        p, small, .text-muted { color: #b0b0b0 !important; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/"><i class="fas fa-shield-alt me-2"></i>WebSentinal</a>
+            <div class="d-flex">
+                <a href="/scan/new" class="btn btn-outline-light btn-sm me-2"><i class="fas fa-plus me-1"></i>New Scan</a>
+
+                <a href="/history" class="btn btn-outline-light btn-sm me-2"><i class="fas fa-history me-1"></i>History</a>
+                <a href="/logout" class="btn btn-outline-secondary btn-sm"><i class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            {% if scan.status == 'scanning' %}
+            <div class="alert alert-scan mb-4">
+                <i class="fas fa-satellite-dish me-2"></i>
+                <strong>Scan in Progress</strong>
+                <span class="ms-3"><span class="live-dot me-1"></span> Live</span>
+                <span class="float-end" id="scanMessage">Initializing...</span>
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Scan Results</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4>Target: <span class="text-info">{{ scan.target_url }}</span></h4>
+                            <p><strong>Scan ID:</strong> <code>{{ scan.id }}</code></p>
+                            <p>
+                                <strong>Status:</strong> 
+                                <span class="badge bg-{% if scan.status == 'completed' %}success{% elif scan.status == 'scanning' %}info{% elif scan.status == 'failed' %}danger{% else %}secondary{% endif %}">
+                                    {{ scan.status.title() }}
+                                </span>
+                            </p>
+                            {% if scan.status == 'failed' and scan.error_message %}
+                            <p><strong>Error:</strong> <span class="text-danger">{{ scan.error_message }}</span></p>
+                            {% endif %}
+                            <p><strong>Started:</strong> {% if scan.start_time %}{{ scan.start_time.strftime('%Y-%m-%d %H:%M:%S') }}{% endif %}</p>
+                            {% if scan.end_time %}
+                            <p><strong>Completed:</strong> {{ scan.end_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            {% if scan.status == 'completed' %}
+                            <div class="progress"><div class="progress-bar bg-success" style="width: 100%"></div></div>
+                            <p class="text-center mt-2">Scan Complete</p>
+                            {% elif scan.status == 'scanning' %}
+                            <div class="progress">
+                                <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" style="width: {{ scan.progress }}%" id="progressBar"></div>
+                            </div>
+                            <p class="text-center mt-2" id="progressText">{{ scan.progress }}% Complete</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-stats" id="liveStats" {% if scan.status == 'scanning' and scan.total_vulnerabilities == 0 %}style="display: none;"{% endif %}>
+                <div class="stat-box"><div class="stat-value stat-high" id="highValue">{{ scan.high_risk }}</div><div>High Risk</div></div>
+                <div class="stat-box"><div class="stat-value stat-medium" id="mediumValue">{{ scan.medium_risk }}</div><div>Medium Risk</div></div>
+                <div class="stat-box"><div class="stat-value stat-low" id="lowValue">{{ scan.low_risk }}</div><div>Low Risk</div></div>
+                <div class="stat-box"><div class="stat-value stat-info" id="infoValue">{{ scan.informational }}</div><div>Informational</div></div>
+                <div class="stat-box"><div class="stat-value text-info" id="totalValue">{{ scan.total_vulnerabilities }}</div><div>Total Found</div></div>
+            </div>
+
+            {% if scan.status == 'completed' and scan.total_vulnerabilities > 0 %}
+            <div class="card mb-4">
+                <div class="card-header"><h4 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Risk Distribution</h4></div>
+                <div class="card-body"><canvas id="riskChart" height="80"></canvas></div>
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-bug me-2"></i>Vulnerabilities</h4>
+                    <span class="badge bg-primary">{{ vulnerabilities|length }} found</span>
+                </div>
+                <div class="card-body" id="vulnContainer">
+                    {% if vulnerabilities %}
+                        {% for vuln in vulnerabilities %}
+                        <div class="card vulnerability-card mb-3 {{ 'risk-' + vuln.risk_level.lower() }}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h5 class="mb-2">
+                                            {{ vuln.name }}
+                                            <span class="risk-badge badge-{{ vuln.risk_level.lower() }} ms-2">{{ vuln.risk_level }}</span>
+                                        </h5>
+                                        <p class="mb-1"><i class="fas fa-link me-1"></i><strong>URL:</strong> <a href="{{ vuln.url }}" target="_blank" class="text-url">{{ vuln.url }}</a></p>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-light" onclick="toggleDetails(this)">
+                                        <i class="fas fa-chevron-down me-1"></i>Details
+                                    </button>
+                                </div>
+                                <div class="collapsible-content">
+                                    <div class="mt-3">
+                                        <h6>Description</h6>
+                                        <p>{{ vuln.description }}</p>
+                                        {% if vuln.solution %}
+                                        <h6 class="mt-3">Solution</h6>
+                                        <p>{{ vuln.solution }}</p>
+                                        {% endif %}
+                                        {% if vuln.evidence %}
+                                        <h6 class="mt-3">Evidence</h6>
+                                        <pre class="bg-dark p-3 rounded" style="max-height: 250px; overflow-y: auto;">{{ vuln.evidence }}</pre>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        {% if scan.status == 'scanning' %}
+                        <div class="text-center py-5" id="scanningPlaceholder">
+                            <i class="fas fa-satellite-dish fa-3x text-info mb-3"></i>
+                            <h4>Scanning in progress...</h4>
+                            <p>Vulnerabilities will appear here in real-time</p>
+                            <div class="spinner-border text-info" role="status"></div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h4 class="text-success">No vulnerabilities found!</h4>
+                            <p>This target appears to be secure.</p>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                    <div id="liveFindings"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        {% if scan.status == 'completed' and scan.total_vulnerabilities > 0 %}
+        new Chart(document.getElementById('riskChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['High', 'Medium', 'Low', 'Informational'],
+                datasets: [{ data: [{{ scan.high_risk }}, {{ scan.medium_risk }}, {{ scan.low_risk }}, {{ scan.informational }}], backgroundColor: ['#dc3545', '#ffc107', '#28a745', '#6c757d'], borderWidth: 1 }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#ffffff' } } } }
+        });
+        {% endif %}
+
+        function toggleDetails(btn) {
+            const content = btn.closest('.card-body').querySelector('.collapsible-content');
+            content.classList.toggle('show');
+            const icon = btn.querySelector('i');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+
+{% if scan.status == 'scanning' %}
+        let es = new EventSource(`/scan/{{ scan.id }}/stream`);
+        es.addEventListener('progress', e => {
+            const d = JSON.parse(e.data);
+            document.getElementById('scanMessage').textContent = d.message;
+            document.getElementById('progressBar').style.width = d.progress + '%';
+            document.getElementById('progressText').textContent = d.progress + '% Complete';
+        });
+        es.addEventListener('finding', e => {
+            const v = JSON.parse(e.data);
+            document.getElementById('scanningPlaceholder').style.display = 'none';
+            document.getElementById('liveStats').style.display = 'grid';
+            document.getElementById('liveFindings').insertAdjacentHTML('afterbegin',
+                `<div class="card vulnerability-card mb-3 risk-${v.risk_level.toLowerCase()}"><div class="card-body"><h5>${v.name} <span class="risk-badge badge-${v.risk_level.toLowerCase()} ms-2">${v.risk_level}</span> <span class="badge bg-success">NEW</span></h5><p class="mb-1"><i class="fas fa-link me-1"></i>URL: <a href="${v.url}" target="_blank" class="text-url">${v.url}</a></p></div></div>`
+            );
+        });
+        es.addEventListener('status', e => {
+            const d = JSON.parse(e.data);
+            document.getElementById('highValue').textContent = d.high_risk || 0;
+            document.getElementById('mediumValue').textContent = d.medium_risk || 0;
+            document.getElementById('lowValue').textContent = d.low_risk || 0;
+            document.getElementById('infoValue').textContent = d.informational || 0;
+            document.getElementById('totalValue').textContent = d.total_vulnerabilities || 0;
+        });
+        es.addEventListener('complete', () => { es.close(); location.reload(); });
+        {% endif %}
+    </script>
+</body>
+</html>

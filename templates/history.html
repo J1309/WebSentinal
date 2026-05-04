@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan History - WebSentinal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #1a1a2e; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #ffffff; }
+        .navbar { background-color: #16213e !important; border-bottom: 1px solid #333; }
+        .main-content { padding: 20px; }
+        .card { border-radius: 12px; background-color: #0f3460; border: 1px solid #333; margin-bottom: 20px; }
+        .card-header { background-color: #16213e; border-bottom: 1px solid #333; color: #ffffff; }
+        .history-item { background-color: #16213e; border-radius: 10px; padding: 18px; margin-bottom: 12px; border-left: 4px solid #6366f1; }
+        .history-item:hover { border-left-color: #818cf8; }
+        .status-badge { padding: 5px 12px; border-radius: 15px; font-weight: 600; font-size: 0.8rem; }
+        .status-pending { background-color: #ffc107; color: black; }
+        .status-scanning { background-color: #17a2b8; color: white; }
+        .status-completed { background-color: #28a745; color: white; }
+        .status-failed { background-color: #dc3545; color: white; }
+        .form-control { background-color: #1a1a2e; border: 1px solid #444; color: #ffffff; }
+        .form-control::placeholder { color: #888888; }
+        .form-control:focus { background-color: #1a1a2e; border-color: #6366f1; color: #ffffff; }
+        .stats-summary { background-color: #0f3460; border-radius: 12px; padding: 25px; margin-bottom: 25px; border: 1px solid #333; }
+        .stat-number { font-size: 2rem; font-weight: 800; color: #6366f1; }
+        .stat-label { color: #b0b0b0; }
+        a.text-url { color: #17a2b8; text-decoration: none; }
+        a.text-url:hover { text-decoration: underline; }
+        h4, h5 { color: #ffffff; }
+        p, small, .text-muted { color: #b0b0b0 !important; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/"><i class="fas fa-shield-alt me-2"></i>WebSentinal</a>
+            <div class="d-flex">
+                <a href="/scan/new" class="btn btn-outline-light btn-sm me-2"><i class="fas fa-plus me-1"></i>New Scan</a>
+                <a href="/logout" class="btn btn-outline-secondary btn-sm"><i class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-history me-2"></i>Scan History</h1>
+                <input type="text" class="form-control" id="searchInput" placeholder="Search targets..." style="max-width: 300px;">
+            </div>
+
+            <div class="stats-summary">
+                <div class="row text-center">
+                    <div class="col-md-3"><div class="stat-number">{{ scans|length }}</div><div class="stat-label">Total Scans</div></div>
+                    <div class="col-md-3"><div class="stat-number">{{ scans|selectattr('status', 'equalto', 'completed')|list|length }}</div><div class="stat-label">Completed</div></div>
+                    <div class="col-md-3">
+                        {% set high_risk_total = 0 %}{% for scan in scans %}{% if scan.status == 'completed' %}{% set high_risk_total = high_risk_total + scan.high_risk %}{% endif %}{% endfor %}
+                        <div class="stat-number">{{ high_risk_total }}</div><div class="stat-label">High Risk Issues</div>
+                    </div>
+                    <div class="col-md-3"><div class="stat-number">{% if scans %}{% set cs = scans|selectattr('status', 'equalto', 'completed')|list %}{% if cs %}{% set tv = 0 %}{% for s in cs %}{% set tv = tv + s.total_vulnerabilities %}{% endfor %}{{ (tv / cs|length)|round|int }}{% else %}0{% endif %}{% else %}0{% endif %}</div><div class="stat-label">Avg. Vulnerabilities</div></div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <button class="btn btn-outline-primary btn-sm me-2 mb-2 filter-btn active" data-filter="all">All</button>
+                <button class="btn btn-outline-success btn-sm me-2 mb-2 filter-btn" data-filter="completed">Completed</button>
+                <button class="btn btn-outline-info btn-sm me-2 mb-2 filter-btn" data-filter="scanning">Scanning</button>
+                <button class="btn btn-outline-warning btn-sm me-2 mb-2 filter-btn" data-filter="pending">Pending</button>
+                <button class="btn btn-outline-danger btn-sm me-2 mb-2 filter-btn" data-filter="failed">Failed</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3 class="mb-0">Scan Records</h3></div>
+                <div class="card-body">
+                    {% if scans %}
+                        {% for scan in scans %}
+                        <div class="history-item" data-status="{{ scan.status }}" data-target="{{ scan.target_url.lower() }}">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    <h5 class="mb-1"><a href="/scan/{{ scan.id }}" class="text-url">{{ scan.target_url }}</a></h5>
+                                    <small>{{ scan.id[:12] }}...</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="status-badge status-{{ scan.status }}">{{ scan.status.title() }}</span>
+                                </div>
+                                <div class="col-md-3">
+                                    {% if scan.status == 'completed' %}
+                                        <span class="badge bg-danger me-1">{{ scan.high_risk }} High</span>
+                                        <span class="badge bg-warning me-1">{{ scan.medium_risk }} Med</span>
+                                        <span class="badge bg-success me-1">{{ scan.low_risk }} Low</span>
+                                        <small class="d-block mt-1">{{ scan.total_vulnerabilities }} total</small>
+                                    {% elif scan.status == 'scanning' %}
+                                        <div class="progress" style="height: 8px;"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width: {{ scan.progress }}%"></div></div>
+                                        <small>{{ scan.progress }}% complete</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <small>{% if scan.start_time %}{{ scan.start_time.strftime('%Y-%m-%d %H:%M') }}{% endif %}</small>
+                                    {% if scan.status == 'completed' %}
+                                        <div class="mt-1"><a href="/scan/{{ scan.id }}" class="btn btn-sm btn-outline-info"><i class="fas fa-eye me-1"></i>View</a></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                            <h4>No scan history</h4>
+                            <a href="/scan/new" class="btn btn-primary mt-3"><i class="fas fa-plus me-2"></i>Start New Scan</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const filter = this.getAttribute('data-filter');
+                document.querySelectorAll('.history-item').forEach(item => {
+                    item.style.display = filter === 'all' || item.getAttribute('data-status') === filter ? 'block' : 'none';
+                });
+            });
+        });
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const search = this.value.toLowerCase();
+            document.querySelectorAll('.history-item').forEach(item => {
+                item.style.display = item.getAttribute('data-target').includes(search) ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>
